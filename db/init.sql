@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS trip_records (
+  id VARCHAR(10) PRIMARY KEY CHECK (id ~ '^[A-Z0-9]{10}$'),
+  payload TEXT NOT NULL,
+  encrypted BOOLEAN NOT NULL DEFAULT FALSE,
+  salt TEXT,
+  iv TEXT,
+  auth_tag TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
