@@ -88,7 +88,7 @@ jobs:
       - name: Build API
         run: |
           docker build \
-            --file .docker/api/Dockerfile.api \
+            --file ./Dockerfile.api \
             --tag "${IMAGE_NAME_API}:${GITHUB_SHA}" \
             --tag "${IMAGE_NAME_API}:latest" \
             .
@@ -96,7 +96,7 @@ jobs:
       - name: Build Frontend
         run: |
           docker build \
-            --file .docker/frontend/Dockerfile.frontend \
+            --file ./Dockerfile.frontend \
             --tag "${IMAGE_NAME_FRONTEND}:${GITHUB_SHA}" \
             --tag "${IMAGE_NAME_FRONTEND}:latest" \
             .
