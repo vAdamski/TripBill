@@ -89,27 +89,27 @@ jobs:
         run: |
           docker build \
             --file .docker/api/Dockerfile \
-            --tag "IMAGE_NAME_API:${GITHUB_SHA}" \
-            --tag "IMAGE_NAME_API:latest" \
+            --tag "${IMAGE_NAME_API}:${GITHUB_SHA}" \
+            --tag "${IMAGE_NAME_API}:latest" \
             .
 
       - name: Build Frontend
         run: |
           docker build \
             --file .docker/frontend/Dockerfile \
-            --tag "IMAGE_NAME_FRONTEND:${GITHUB_SHA}" \
-            --tag "IMAGE_NAME_FRONTEND:latest" \
+            --tag "${IMAGE_NAME_FRONTEND}:${GITHUB_SHA}" \
+            --tag "${IMAGE_NAME_FRONTEND}:latest" \
             .
 
       - name: Push API
         run: |
-          docker push "IMAGE_NAME_API:${GITHUB_SHA}"
-          docker push "IMAGE_NAME_API:latest"
+          docker push "${IMAGE_NAME_API}:${GITHUB_SHA}"
+          docker push "${IMAGE_NAME_API}:latest"
 
       - name: Push Frontend
         run: | 
-          docker push "IMAGE_NAME_FRONTEND:${GITHUB_SHA}"
-          docker push "IMAGE_NAME_FRONTEND:latest"
+          docker push "${IMAGE_NAME_FRONTEND}:${GITHUB_SHA}"
+          docker push "${IMAGE_NAME_FRONTEND}:latest"
 
       - name: Disconnect and logout
         if: always()
