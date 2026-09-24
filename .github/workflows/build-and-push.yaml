@@ -15,8 +15,8 @@ concurrency:
 
 env:
   HARBOR_HOST: harbor.home.arpa
-  IMAGE_NAME_API: ${{ env.HARBOR_HOST }}/trip-bill/api
-  IMAGE_NAME_FRONTEND: ${{ env.HARBOR_HOST }}/trip-bill/frontend
+  IMAGE_NAME_API: harbor.home.arpa/trip-bill/api
+  IMAGE_NAME_FRONTEND: harbor.home.arpa/trip-bill/frontend
 
 jobs:
   build:
