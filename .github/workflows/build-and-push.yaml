@@ -1,0 +1,118 @@
+name: Build and push Docker image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harbor-wireguard
+  cancel-in-progress: false
+
+env:
+  HARBOR_HOST: harbor.home.arpa
+  IMAGE_NAME_API: ${{ env.HARBOR_HOST }}/trip-bill/api
+  IMAGE_NAME_FRONTEND: ${{ env.HARBOR_HOST }}/trip-bill/frontend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install WireGuard
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wireguard-tools
+
+      - name: Connect to homelab
+        env:
+          WIREGUARD_CONFIG_B64: ${{ secrets.WIREGUARD_CONFIG_B64 }}
+        run: |
+          sudo install -d -m 700 /etc/wireguard
+
+          printf '%s' "$WIREGUARD_CONFIG_B64" \
+            | base64 --decode \
+            | sudo tee /etc/wireguard/wg0.conf >/dev/null
+
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo wg-quick up wg0
+
+          sudo wg show
+          ip route get 192.168.10.157
+
+      - name: Configure Harbor certificate
+        env:
+          HARBOR_CA_B64: ${{ secrets.HARBOR_CA_B64 }}
+        run: |
+          echo "192.168.10.157 harbor.home.arpa" \
+            | sudo tee -a /etc/hosts
+
+          printf '%s' "$HARBOR_CA_B64" \
+            | base64 --decode \
+            | sudo tee /usr/local/share/ca-certificates/harbor-ca.crt >/dev/null
+
+          sudo update-ca-certificates
+
+          sudo install -d -m 755 \
+            /etc/docker/certs.d/harbor.home.arpa
+
+          sudo cp \
+            /usr/local/share/ca-certificates/harbor-ca.crt \
+            /etc/docker/certs.d/harbor.home.arpa/ca.crt
+
+          sudo systemctl restart docker
+
+      - name: Test Harbor connection
+        run: |
+          curl --fail --show-error \
+            https://harbor.home.arpa/api/v2.0/health
+
+      - name: Login to Harbor
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_TOKEN: ${{ secrets.HARBOR_TOKEN }}
+        run: |
+          printf '%s' "$HARBOR_TOKEN" \
+            | docker login "$HARBOR_HOST" \
+                --username "$HARBOR_USERNAME" \
+                --password-stdin
+
+      - name: Build API
+        run: |
+          docker build \
+            --file .docker/api/Dockerfile \
+            --tag "IMAGE_NAME_API:${GITHUB_SHA}" \
+            --tag "IMAGE_NAME_API:latest" \
+            .
+
+      - name: Build Frontend
+        run: |
+          docker build \
+            --file .docker/frontend/Dockerfile \
+            --tag "IMAGE_NAME_FRONTEND:${GITHUB_SHA}" \
+            --tag "IMAGE_NAME_FRONTEND:latest" \
+            .
+
+      - name: Push API
+        run: |
+          docker push "IMAGE_NAME_API:${GITHUB_SHA}"
+          docker push "IMAGE_NAME_API:latest"
+
+      - name: Push Frontend
+        run: | 
+          docker push "IMAGE_NAME_FRONTEND:${GITHUB_SHA}"
+          docker push "IMAGE_NAME_FRONTEND:latest"
+
+      - name: Disconnect and logout
+        if: always()
+        run: |
+          docker logout "$HARBOR_HOST" || true
+          sudo wg-quick down wg0 || true
